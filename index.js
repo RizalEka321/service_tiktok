@@ -6,8 +6,10 @@ const axios = require("axios");
 const ffmpeg = require("fluent-ffmpeg");
 const ffmpegPath = require("ffmpeg-static");
 
-// Set path ffmpeg agar tidak perlu install sistem
 ffmpeg.setFfmpegPath(ffmpegPath);
+
+const app = express();
+const PORT = process.env.PORT || 3000;
 
 // ==== FUNGSI DOWNLOAD FOTO ====
 async function downloadFoto(url, outputPath) {
@@ -40,7 +42,11 @@ function fotoKeVideo(inputFoto, outputVideo, durasiDetik = 10) {
 
 // ==== FUNGSI UPLOAD TIKTOK ====
 async function uploadTikTok(videoPath) {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"], // penting di Railway
+  });
+
   const context = await browser.newContext();
 
   const cookiesPath = path.join(__dirname, "cookies.json");
@@ -54,7 +60,7 @@ async function uploadTikTok(videoPath) {
 
   const [fileChooser] = await Promise.all([
     page.waitForEvent("filechooser"),
-    page.click('input[type="file"]'), // sesuaikan selector
+    page.click('input[type="file"]'), // ⚠️ selector mungkin harus disesuaikan manual
   ]);
   await fileChooser.setFiles(videoPath);
 
@@ -64,15 +70,14 @@ async function uploadTikTok(videoPath) {
   await browser.close();
 }
 
-// ==== EXPRESS SERVER UNTUK RENDER ====
-const app = express();
-const PORT = process.env.PORT || 3000;
+// ==== ROUTES EXPRESS ====
 
+// root
 app.get("/", (req, res) => {
-  res.send("Service TikTok siap 🚀");
+  res.send("🚀 Service TikTok siap digunakan");
 });
 
-// Endpoint untuk generate video
+// generate video dari foto
 app.get("/generate", async (req, res) => {
   try {
     const fotoUrl = `https://farhan.tripointeknologi.com/proses/output/quote.png?ts=${Date.now()}`;
@@ -85,25 +90,30 @@ app.get("/generate", async (req, res) => {
     console.log("Convert foto → video...");
     await fotoKeVideo(inputFoto, outputVideo, 10);
 
-    res.send("Video berhasil dibuat ✅");
+    res.send("✅ Video berhasil dibuat");
   } catch (err) {
-    console.error(err);
-    res.status(500).send("Gagal generate video ❌");
+    console.error("❌ Error generate:", err);
+    res.status(500).send("Gagal generate video");
   }
 });
 
-// Endpoint untuk langsung upload ke TikTok
+// upload video ke TikTok
 app.get("/upload", async (req, res) => {
   try {
     const outputVideo = path.join(__dirname, "video.mp4");
+
+    if (!fs.existsSync(outputVideo)) {
+      return res.status(400).send("❌ Video belum ada. Jalankan /generate dulu.");
+    }
+
     await uploadTikTok(outputVideo);
-    res.send("Video berhasil diupload ke TikTok ✅");
+    res.send("✅ Video berhasil diupload ke TikTok");
   } catch (err) {
-    console.error(err);
-    res.status(500).send("Gagal upload ke TikTok ❌");
+    console.error("❌ Error upload:", err);
+    res.status(500).send("Gagal upload ke TikTok");
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`Server jalan di port ${PORT}`);
+  console.log(`🚀 Server jalan di port ${PORT}`);
 });
