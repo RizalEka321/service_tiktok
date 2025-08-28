@@ -44,7 +44,8 @@ function fotoKeVideo(inputFoto, outputVideo, durasiDetik = 10) {
 async function uploadTikTok(videoPath) {
   const browser = await chromium.launch({
     headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    channel: "chromium",
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-accelerated-2d-canvas", "--no-zygote", "--disable-gpu", "--single-process"],
   });
 
   const context = await browser.newContext();
