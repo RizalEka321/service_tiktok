@@ -1,6 +1,5 @@
 const express = require("express");
-const { Builder, By, until } = require("selenium-webdriver");
-const chrome = require("selenium-webdriver/chrome");
+const { chromium } = require("playwright");
 const path = require("path");
 const fs = require("fs");
 const axios = require("axios");
@@ -41,45 +40,43 @@ function fotoKeVideo(inputFoto, outputVideo, durasiDetik = 10) {
   });
 }
 
-// ==== FUNGSI UPLOAD TIKTOK (Selenium) ====
+// ==== FUNGSI UPLOAD TIKTOK (Playwright) ====
 async function uploadTikTok(videoPath) {
-  // setup headless chrome untuk server
-  let options = new chrome.Options();
-  options.addArguments("--no-sandbox", "--disable-dev-shm-usage", "--headless");
+  const browser = await chromium.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  });
 
-  let driver = await new Builder().forBrowser("chrome").setChromeOptions(options).build();
+  const context = await browser.newContext();
+  const page = await context.newPage();
 
-  try {
-    await driver.get("https://www.tiktok.com/upload?lang=id-ID");
+  console.log("➡️ Buka halaman TikTok...");
+  await page.goto("https://www.tiktok.com/upload?lang=id-ID", {
+    waitUntil: "domcontentloaded",
+  });
 
-    // Tunggu file input
-    let fileInput = await driver.wait(until.elementLocated(By.css('input[type="file"]')), 10000);
+  // Tunggu input file
+  const fileInput = await page.waitForSelector('input[type="file"]', { timeout: 20000 });
 
-    // Upload video
-    await fileInput.sendKeys(videoPath);
+  // Upload video
+  await fileInput.setInputFiles(videoPath);
+  console.log("🎥 Video diupload ke TikTok (draft).");
 
-    console.log("🎥 Video diupload ke TikTok (draft).");
+  // Tunggu caption box
+  const captionBox = await page.waitForSelector('div[contenteditable="true"]', { timeout: 20000 });
+  await captionBox.type("Upload otomatis via Playwright 🚀");
 
-    // Tunggu caption box muncul
-    let captionBox = await driver.wait(until.elementLocated(By.css('div[contenteditable="true"]')), 10000);
-    await captionBox.sendKeys("Upload otomatis via Selenium 🚀");
+  // Klik tombol Post
+  const postButton = await page.waitForSelector("button:has-text('Post')", { timeout: 20000 });
+  await postButton.click();
 
-    // Klik tombol Post
-    let postButton = await driver.wait(until.elementLocated(By.xpath("//button[contains(., 'Post')]")), 10000);
-    await postButton.click();
-
-    console.log("✅ Video berhasil diposting ke TikTok.");
-  } catch (err) {
-    console.error("❌ Error upload:", err);
-    throw err;
-  } finally {
-    await driver.quit();
-  }
+  console.log("✅ Video berhasil diposting ke TikTok.");
+  await browser.close();
 }
 
 // ==== ROUTES EXPRESS ====
 app.get("/", (req, res) => {
-  res.send("🚀 Service TikTok via Selenium siap digunakan");
+  res.send("🚀 Service TikTok via Playwright siap digunakan");
 });
 
 app.get("/generate", async (req, res) => {
