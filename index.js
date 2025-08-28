@@ -28,7 +28,7 @@ async function downloadFoto(url, outputPath) {
 }
 
 // ==== FUNGSI FOTO → VIDEO (Optimasi) ====
-function fotoKeVideo(inputFoto, outputVideo, durasiDetik = 8) {
+function fotoKeVideo(inputFoto, outputVideo, durasiDetik = 10) {
   return new Promise((resolve, reject) => {
     ffmpeg()
       .input(inputFoto)
@@ -91,7 +91,7 @@ app.get("/", (req, res) => {
 // generate video dari foto
 app.get("/generate", async (req, res) => {
   try {
-    const durasi = parseInt(req.query.durasi) || 8; // bisa custom durasi
+    const durasi = parseInt(req.query.durasi) || 10; // bisa custom durasi
     const fotoUrl = `https://farhan.tripointeknologi.com/proses/output/quote.png?ts=${Date.now()}`;
     const inputFoto = path.join(__dirname, "quotes.png");
     const outputVideo = path.join(__dirname, "video.mp4");
