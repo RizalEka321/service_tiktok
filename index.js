@@ -51,33 +51,11 @@ function fotoKeVideo(inputFoto, outputVideo, durasiDetik = 10) {
 async function uploadTikTok(videoPath) {
   const browser = await chromium.launch({
     headless: true,
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage", // optimasi untuk Railway
-    ],
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
-
-  const context = await browser.newContext();
-
-  const cookiesPath = path.join(__dirname, "cookies.json");
-  if (fs.existsSync(cookiesPath)) {
-    const cookies = JSON.parse(fs.readFileSync(cookiesPath));
-    await context.addCookies(cookies);
-  }
-
-  const page = await context.newPage();
-  await page.goto("https://www.tiktok.com/upload", { waitUntil: "networkidle" });
-
-  const [fileChooser] = await Promise.all([
-    page.waitForEvent("filechooser"),
-    page.click('input[type="file"]'), // ⚠️ pastikan selector benar
-  ]);
-  await fileChooser.setFiles(videoPath);
-
-  console.log("Video siap di-upload ke TikTok.");
-  await page.waitForTimeout(8000);
-
+  const page = await browser.newPage();
+  await page.goto("https://tiktok.com");
+  console.log(await page.title());
   await browser.close();
 }
 
